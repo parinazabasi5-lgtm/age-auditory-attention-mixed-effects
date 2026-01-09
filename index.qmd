@@ -1,0 +1,12 @@
+---
+title: "Age-related Auditory Attention Switching (Mixed-Effects)"
+format:
+  html:
+    toc: false
+---
+
+## Project overview
+
+This repository contains a mixed-effects re-analysis of open behavioral data on auditory attention switching, with a focus on model robustness and analytical decisions.
+
+- See the full analysis here: [Analysis](reports/analysis.qmd)
