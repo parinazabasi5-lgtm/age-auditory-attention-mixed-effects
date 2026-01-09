@@ -1,0 +1,18 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Age-related Auditory Attention Switching (Mixed-Effects)"
+  navbar:
+    left:
+      - href: reports/analysis.qmd
+        text: Analysis
+
+format:
+  html:
+    toc: true
+    number-sections: true
+    theme: cosmo
+    code-fold: true
+    code-tools: true
