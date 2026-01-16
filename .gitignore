@@ -21,10 +21,20 @@ cache/
 *.utf8.md
 *.knit.md
 
+# --- renv (project-local library) ---
 renv/library/
 renv/local/
 renv/python/
 renv/staging/
 
-# Rplots.pdf
-# *.log
+# --- Logs / plots ---
+Rplots.pdf
+*.log
+
+# --- (Keep raw/processed data + figures/tables in GitHub) ---
+# Intentionally NOT ignoring:
+# data/raw/
+# data/processed/
+# figures/
+# tables/
+# reports/
