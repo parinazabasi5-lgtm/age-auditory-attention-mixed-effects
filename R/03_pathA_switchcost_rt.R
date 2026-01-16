@@ -7,22 +7,17 @@ for (d in c("figures", "tables", "reports")) {
 }
 
 objs <- readRDS("data/processed/pathA_objects.rds")
-d_rt <- if (!is.null(objs$d_rt)) objs$d_rt else stop("d_rt not found in pathA_objects.rds")
-
-required_cols <- c("ppt_num", "group", "session", "switch", "congruency", "log_RT")
-missing_cols <- setdiff(required_cols, names(d_rt))
-if (length(missing_cols) > 0) stop("Missing required columns in d_rt: ", paste(missing_cols, collapse = ", "))
+d_rt <- objs$d_rt
+if (is.null(d_rt)) stop("d_rt is NULL. Run R/01_data_prep.R first.")
 
 rt_cells <- d_rt %>%
   dplyr::group_by(ppt_num, group, session, switch, congruency) %>%
   dplyr::summarise(mean_logRT = mean(log_RT, na.rm = TRUE), .groups = "drop")
 
-# switch cost = switch - repeat (within each ppt/group/session/congruency)
+# switch cost = switch - repeat
 switch_cost <- rt_cells %>%
   tidyr::pivot_wider(names_from = switch, values_from = mean_logRT) %>%
-  dplyr::mutate(
-    switch_cost = .data[["switch"]] - .data[["repeat"]]
-  )
+  dplyr::mutate(switch_cost = switch - repeat)
 
 switch_cost_summary <- switch_cost %>%
   dplyr::group_by(group, session, congruency) %>%
@@ -48,7 +43,7 @@ p_sc <- ggplot2::ggplot(switch_cost_summary, ggplot2::aes(x = session, y = m, gr
 print(p_sc)
 ggplot2::ggsave("figures/fig_rt_switch_cost.png", p_sc, width = 8, height = 4.5, dpi = 300)
 
-# Paired t-test S1 vs S2 (within-subject)
+# paired t-test S1 vs S2
 switch_cost_wide <- switch_cost %>%
   dplyr::select(ppt_num, group, congruency, session, switch_cost) %>%
   tidyr::pivot_wider(names_from = session, values_from = switch_cost, names_prefix = "S")
@@ -56,7 +51,7 @@ switch_cost_wide <- switch_cost %>%
 switch_cost_tests <- switch_cost_wide %>%
   dplyr::group_by(group, congruency) %>%
   dplyr::summarise(
-    t_test  = list(stats::t.test(S1, S2, paired = TRUE)),
+    t_test = list(stats::t.test(S1, S2, paired = TRUE)),
     mean_s1 = mean(S1, na.rm = TRUE),
     mean_s2 = mean(S2, na.rm = TRUE),
     .groups = "drop"

@@ -1,0 +1,21 @@
+Variable Name,Description,Values
+ppt_num,Unique participant ID.,Numbers from 1 to n (number of participants)
+age,Participant age,Number from 18 to 77
+sex,Participant gender,male vs. female
+session,Specifies the session,1 vs. 2
+trial_num,Trial number within each block.,starting from 1 till 80
+block,Specifies theblock number,crescendo from 3 (block 1 & 2 were practice)
+cue,Visual cue (where to pay attention in space),L vs. R
+target,Target number,from 1 to 9 (excluded 5)
+distractro,Distractor number,from 1 to 9 (excluded 5)
+switch,Auditory attention swtich,repeat vs. switch
+congruency,Congruency between target and distractor stimulus,congruent vs. incongruent
+accuracy ,Accuracy of the manual response for the auditory task.,0 = correct; 1 = inorrect
+RT,Reaction time for the manual response in the auditory task (in milliseconds).,Reaction time in milliseconds
+task,prectice or actuale experiment,actual_experiment
+log_RT,log transfomred - Reaction time ,Reaction time log-transformed
+group,young vs old based on age,young vs. old
+Session.1,PTA 1st session,hearing threshold 1
+Session.2,PTA 2nd session,hearing threshold 2
+averagePTA,mean value PTA between Session 1 and Session 2,mean value PTA between Session 1 and Session 2
+centered_PTA,mean value PTA centered around the mean,mean value PTA centered around the mean

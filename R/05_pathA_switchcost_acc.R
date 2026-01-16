@@ -1,4 +1,4 @@
-# R/04_pathA_anova_acc.R
+# R/05_pathA_switchcost_acc.R
 source("R/00_setup.R")
 
 for (d in c("figures", "tables", "reports")) {
@@ -7,76 +7,62 @@ for (d in c("figures", "tables", "reports")) {
 }
 
 objs <- readRDS("data/processed/pathA_objects.rds")
+d_acc <- objs$d_acc
+if (is.null(d_acc)) stop("d_acc is NULL. Run R/01_data_prep.R first.")
 
-# Support both layouts: d_acc (new) or ER_df (old)
-if (!is.null(objs$d_acc)) {
-  d_acc <- objs$d_acc
-} else if (!is.null(objs$ER_df)) {
-  d_acc <- objs$ER_df %>%
-    dplyr::mutate(
-      ppt_num    = factor(ppt_num),
-      group      = factor(group),
-      block      = factor(block),
-      switch     = factor(switch),
-      congruency = factor(congruency),
-      cue        = factor(cue),
-      sex        = factor(sex),
-      session    = if ("session" %in% names(.)) factor(session) else factor(1),
-      correct    = 1L - accuracy
-    )
-} else {
-  stop("No accuracy data found in pathA_objects.rds (expected d_acc or ER_df).")
-}
-
-required_cols <- c("ppt_num", "group", "session", "switch", "congruency", "correct")
-missing_cols <- setdiff(required_cols, names(d_acc))
-if (length(missing_cols) > 0) stop("Missing required columns in d_acc: ", paste(missing_cols, collapse = ", "))
-
+# Cell means (participant x condition)
 acc_cells <- d_acc %>%
   dplyr::group_by(ppt_num, group, session, switch, congruency) %>%
   dplyr::summarise(mean_correct = mean(correct, na.rm = TRUE), .groups = "drop")
 
-anova_acc <- afex::aov_ez(
-  id = "ppt_num",
-  dv = "mean_correct",
-  data = acc_cells,
-  between = "group",
-  within = c("session", "switch", "congruency"),
-  type = 3
-)
+# Accuracy switch cost = switch - repeat
+acc_switch_cost <- acc_cells %>%
+  tidyr::pivot_wider(names_from = switch, values_from = mean_correct) %>%
+  dplyr::mutate(switch_cost_acc = switch - repeat)
 
-print(anova_acc)
-
-acc_summary <- acc_cells %>%
-  dplyr::group_by(group, session, switch, congruency) %>%
+acc_switch_cost_summary <- acc_switch_cost %>%
+  dplyr::group_by(group, session, congruency) %>%
   dplyr::summarise(
-    m  = mean(mean_correct, na.rm = TRUE),
-    sd = sd(mean_correct, na.rm = TRUE),
-    n  = sum(!is.na(mean_correct)),
+    m  = mean(switch_cost_acc, na.rm = TRUE),
+    sd = sd(switch_cost_acc, na.rm = TRUE),
+    n  = sum(!is.na(switch_cost_acc)),
     se = sd / sqrt(n),
     .groups = "drop"
   )
 
-p_acc <- ggplot2::ggplot(acc_summary, ggplot2::aes(x = switch, y = m, group = congruency)) +
+p_acc_sc <- ggplot2::ggplot(acc_switch_cost_summary, ggplot2::aes(x = session, y = m, group = congruency)) +
   ggplot2::geom_line() +
   ggplot2::geom_point() +
   ggplot2::geom_errorbar(ggplot2::aes(ymin = m - se, ymax = m + se), width = 0.1) +
-  ggplot2::facet_grid(group ~ session) +
+  ggplot2::facet_wrap(~ group) +
   ggplot2::labs(
-    x = "Switch",
-    y = "Mean correct rate",
-    title = "Accuracy (correct rate) by Switch, Congruency, Session, and Group"
+    x = "Session",
+    y = "Accuracy switch cost (switch - repeat)",
+    title = "Accuracy switch cost by Session, Congruency, and Group"
   )
 
-print(p_acc)
-ggplot2::ggsave("figures/fig_acc_means.png", p_acc, width = 8, height = 4.5, dpi = 300)
+print(p_acc_sc)
+ggplot2::ggsave("figures/fig_acc_switch_cost.png", p_acc_sc, width = 8, height = 4.5, dpi = 300)
 
-anova_acc_table <- anova_acc$anova_table
-table_anova_acc <- data.frame(
-  Effect = rownames(anova_acc_table),
-  anova_acc_table,
-  row.names = NULL
-)
+# paired t-test S1 vs S2
+acc_switch_cost_wide <- acc_switch_cost %>%
+  dplyr::select(ppt_num, group, congruency, session, switch_cost_acc) %>%
+  tidyr::pivot_wider(names_from = session, values_from = switch_cost_acc, names_prefix = "S")
 
-utils::write.csv(table_anova_acc, "tables/table_anova_acc.csv", row.names = FALSE)
-utils::write.csv(acc_summary, "tables/table_acc_summary_cells.csv", row.names = FALSE)
+acc_switch_cost_tests <- acc_switch_cost_wide %>%
+  dplyr::group_by(group, congruency) %>%
+  dplyr::summarise(
+    t_test = list(stats::t.test(S1, S2, paired = TRUE)),
+    mean_s1 = mean(S1, na.rm = TRUE),
+    mean_s2 = mean(S2, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    t  = purrr::map_dbl(t_test, ~ unname(.x$statistic)),
+    df = purrr::map_dbl(t_test, ~ unname(.x$parameter)),
+    p  = purrr::map_dbl(t_test, ~ .x$p.value)
+  ) %>%
+  dplyr::select(group, congruency, mean_s1, mean_s2, t, df, p)
+
+utils::write.csv(acc_switch_cost_tests, "tables/table_acc_switch_cost_tests.csv", row.names = FALSE)
+utils::write.csv(acc_switch_cost_summary, "tables/table_acc_switch_cost_summary.csv", row.names = FALSE)

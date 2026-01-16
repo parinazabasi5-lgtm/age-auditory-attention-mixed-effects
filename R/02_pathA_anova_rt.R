@@ -1,7 +1,7 @@
 # R/02_pathA_anova_rt.R
 source("R/00_setup.R")
 
-# --- Ensure output directories exist ---
+# Ensure output directories exist
 for (d in c("figures", "tables", "reports")) {
   if (file.exists(d) && !dir.exists(d)) file.remove(d)
   dir.create(d, showWarnings = FALSE, recursive = TRUE)
@@ -23,20 +23,19 @@ if (!is.null(objs$d_rt)) {
       cue        = factor(cue),
       sex        = factor(sex),
       session    = if ("session" %in% names(.)) factor(session) else factor(1),
-      log_RT     = if ("log_RT" %in% names(.)) log_RT else log(RT),
-      correct    = if ("accuracy" %in% names(.)) 1L - accuracy else 1L
+      correct    = if ("accuracy" %in% names(.)) (1L - accuracy) else NA_integer_,
+      log_RT     = if ("log_RT" %in% names(.)) log_RT else log(RT)
     ) %>%
-    dplyr::filter(RT >= 200, RT <= 3000) %>%
-    { if ("accuracy" %in% names(.) && any(.$accuracy == 1, na.rm = TRUE)) dplyr::filter(., correct == 1) else . }
+    dplyr::filter(RT >= 200, RT <= 3000)
 } else {
-  stop("No RT data found in pathA_objects.rds (expected d_rt or RT_df).")
+  stop("No RT data found in data/processed/pathA_objects.rds (expected d_rt or RT_df).")
 }
 
 required_cols <- c("ppt_num", "group", "session", "switch", "congruency", "log_RT")
 missing_cols <- setdiff(required_cols, names(d_rt))
 if (length(missing_cols) > 0) stop("Missing required columns in d_rt: ", paste(missing_cols, collapse = ", "))
 
-# Cell means
+# Cell means (participant x condition)
 rt_cells <- d_rt %>%
   dplyr::group_by(ppt_num, group, session, switch, congruency) %>%
   dplyr::summarise(mean_logRT = mean(log_RT, na.rm = TRUE), .groups = "drop")
@@ -81,11 +80,7 @@ ggplot2::ggsave("figures/fig_rt_means.png", p_rt, width = 8, height = 4.5, dpi =
 
 # Export tables
 anova_rt_table <- anova_rt$anova_table
-table_anova_rt <- data.frame(
-  Effect = rownames(anova_rt_table),
-  anova_rt_table,
-  row.names = NULL
-)
+table_anova_rt <- data.frame(Effect = rownames(anova_rt_table), anova_rt_table, row.names = NULL)
 
 utils::write.csv(table_anova_rt, "tables/table_anova_rt.csv", row.names = FALSE)
 utils::write.csv(rt_summary, "tables/table_rt_summary_cells.csv", row.names = FALSE)
